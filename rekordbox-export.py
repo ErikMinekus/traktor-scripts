@@ -61,6 +61,18 @@ class GridMarker:
         self.Metro   = '4/4'
 
 
+class GridOffsetMarker:
+    def __init__(self, cue, bpm):
+        beatsToCue = (float(cue.get('START')) / 1000) * (bpm / 60)
+        beatPos    = (beatsToCue % 1) * (60 / bpm)
+        beatNum    = [1, 4, 3, 2][int(beatsToCue % 4)]
+
+        self.Battito = str(beatNum)
+        self.Bpm     = '{:.2f}'.format(bpm)
+        self.Inizio  = '{:.3f}'.format(beatPos)
+        self.Metro   = '4/4'
+
+
 class Track:
     def __init__(self, entry):
         album = entry.find('ALBUM')
@@ -101,7 +113,10 @@ class Track:
 
         for cue in entry.iterfind('CUE_V2'):
             if cue.get('TYPE') == OldCueType.Grid:
-                self.gridMarkers.append(GridMarker(cue, float(tempo.get('BPM', 0))))
+                if len(self.gridMarkers) == 0:
+                    self.gridMarkers.append(GridOffsetMarker(cue, float(tempo.get('BPM', 0))))
+                else:
+                    self.gridMarkers.append(GridMarker(cue, float(tempo.get('BPM', 0))))
 
                 # Store Grid Marker as Hot Cue
                 if cue.get('HOTCUE') != '-1':
