@@ -3,20 +3,35 @@
 Export playlists to M3U files.
 """
 
-import os.path
+import os
 import sys
 import xml.etree.ElementTree as ET
 
 
 def main(inputFile, outputPath):
-    traktor = ET.parse(inputFile).getroot()
+    collection = ET.parse(inputFile).getroot()
 
-    for node in traktor.iterfind('PLAYLISTS/NODE/SUBNODES/NODE[@TYPE="PLAYLIST"]'):
-        name = node.get('NAME')
-        if name in ['_LOOPS', '_RECORDINGS']:
-            continue
+    for node in collection.iterfind('PLAYLISTS/NODE/SUBNODES/NODE'):
+        processNode(node, outputPath)
 
-        outputFile = os.path.join(outputPath, name.replace(os.sep, '-') + '.m3u')
+
+def processNode(node, outputPath):
+    nodeType = node.get('TYPE')
+    nodeName = node.get('NAME')
+    nodeOutputPath = os.path.join(outputPath, nodeName.replace(os.sep, '-'))
+
+    if nodeType == 'FOLDER':
+        if not os.path.exists(nodeOutputPath):
+            os.mkdir(nodeOutputPath)
+
+        for subnode in node.iterfind('SUBNODES/NODE'):
+            processNode(subnode, nodeOutputPath)
+
+    elif nodeType == 'PLAYLIST':
+        if nodeName in ['_LOOPS', '_RECORDINGS']:
+            return
+
+        outputFile = nodeOutputPath + '.m3u'
 
         with open(outputFile, 'w') as file:
             for track in node.iterfind('PLAYLIST/ENTRY/PRIMARYKEY[@TYPE="TRACK"]'):
